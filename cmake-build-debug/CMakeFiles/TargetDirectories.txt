@@ -1,0 +1,3 @@
+D:/summer 24/RV32IC-Simulator/cmake-build-debug/CMakeFiles/RV32IC_Simulator.dir
+D:/summer 24/RV32IC-Simulator/cmake-build-debug/CMakeFiles/edit_cache.dir
+D:/summer 24/RV32IC-Simulator/cmake-build-debug/CMakeFiles/rebuild_cache.dir
