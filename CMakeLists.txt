@@ -11,4 +11,4 @@ add_executable(RV32IC_Simulator
         .idea/workspace.xml
         .gitignore
         main.cpp
-        README.md)
+        README.md generate_test_file.cpp)
