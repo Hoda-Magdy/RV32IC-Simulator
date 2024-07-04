@@ -31,7 +31,117 @@ void printPrefix(unsigned int instA, unsigned int instW){
 	cout << "0x" << hex << std::setfill('0') << std::setw(8) << instA << "\t0x" << std::setw(8) << instW;
 }
 
-void instDecExec(unsigned int instWord) {
+void S_Instructions(unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int S_imm, unsigned int &instPC, unsigned int regArray[]){
+    switch(funct3){
+        case 0:	cout << "\tSB\tx" << rs2 << ", " << (int)S_imm << "(x" << rs1 << ")" << "\n";
+            instPC+=4;
+            break;
+        case 0x1: cout << "\tSH\tx" << rs2 << ", " << (int)S_imm << "(x" << rs1 << ")" << "\n";
+            instPC+=4;
+            break;
+        case 0x2: cout << "\tSW\tx" << rs2 << ", " << (int)S_imm << "(x" << rs1 << ")" << "\n";
+            instPC+=4;
+            break;
+        default:
+            cout << "\tUnkown S Instruction \n";
+    }
+}
+
+void J_instructions(unsigned int rd, unsigned int J_imm, unsigned int &instPC){
+    cout << "\tJAL\tx" << rd << ", " << (int)J_imm << "\n";
+    instPC+=4;
+}
+
+void B_instructions(unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int B_imm, unsigned int &instPC, unsigned int regArray[]){
+    switch(funct3) {
+        case 0:
+            cout << "\tBEQ\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
+            instPC+=4;
+            break;
+        case 1:
+            cout << "\tBNE\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
+            instPC+=4;
+            break;
+        case 2:
+            cout << "\tBLT\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
+            instPC+=4;
+            break;
+        case 3:
+            cout << "\tBGE\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
+            instPC+=4;
+            break;
+        case 4:
+            cout << "\tBLTU\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
+            instPC+=4;
+            break;
+        case 5:
+            cout << "\tBGEU\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
+            instPC+=4;
+            break;
+        default:
+            cout << "\tUnknown I Instruction \n";
+    }
+}
+
+void R_instructions(unsigned int rd, unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int funct7, unsigned int &instPC, unsigned int regArray[]){
+    switch(funct3) {
+        case 0:
+            if(funct7 == 0x20) {
+                cout << "\tSUB\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+                instPC+=4;
+            } else if (funct7 == 0x00) { // Check for ADD
+                cout << "\tADD\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+                instPC+=4;
+
+            } else {
+                cout << "\tUnknown R Instruction \n";
+            }
+            break;
+        case 1:
+            cout << "\tSLL\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+            instPC+=4;
+            break;
+
+        case 2:
+            cout << "\tSLT\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+            instPC+=4;
+            break;
+
+        case 3:
+            cout << "\tSLTU\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+            instPC+=4;
+            break;
+
+        case 4:
+            cout << "\tXOR\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+            instPC+=4;
+            break;
+
+        case 5:
+            if(funct7 == 0x20) {
+                cout << "\tSRA\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+                instPC+=4;
+            } else if (funct7 == 0x00) { // Check for ADD
+                cout << "\tSRL\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+                instPC+=4;
+            } else {
+                cout << "\tUnknown R Instruction \n";
+            }
+            break;
+        case 6:
+            cout << "\tOR\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+            instPC+=4;
+            break;
+        case 7:
+            cout << "\tAND\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
+            instPC+=4;
+            break;
+        default:
+            cout << "\tUnknown R Instruction \n";
+    }
+}
+
+void instDecExec(unsigned int instWord, unsigned int regArray[]) {
     unsigned int rd, rs1, rs2, funct3, funct7, opcode;
     unsigned int I_imm, S_imm, B_imm, U_imm, J_imm;
     unsigned int address;
@@ -51,67 +161,17 @@ void instDecExec(unsigned int instWord) {
             ((instWord >> 8) & 0xF) << 1 |  // imm[4:1]
             ((instWord >> 7) & 0x1) << 11 // imm[11]
             | (((instWord >> 31) ? 0xFFFFE000 : 0x0)); // Sign-extend the 13-bit immediate to 32 bits
+    S_imm = ((instWord >> 7) & 0x1F) | (((instWord >> 25) & 0x7F) << 5) | (((instWord >> 31) ? 0xFFFFF800 : 0x0));
+    J_imm = ((instWord >> 21) & 0x3FF) | (((instWord >> 20) & 0x1) << 10) | (((instWord >> 12) & 0xFF) << 11) | (((instWord >> 31) ? 0xFFF80000 : 0x0));
+
 
 
     printPrefix(instPC, instWord);
 
     if(opcode == 0x33) { // R Instructions
-        switch(funct3) {
-            case 0:
-                if(funct7 == 0x20) {
-                    cout << "\tSUB\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                    instPC+=4;
-                } else if (funct7 == 0x00) { // Check for ADD
-                    cout << "\tADD\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                    instPC+=4;
+        R_instructions(rd, funct3, rs1, rs2, funct7, instPC, regArray);
 
-                } else {
-                    cout << "\tUnknown R Instruction \n";
-                }
-                break;
-            case 1:
-                cout << "\tSLL\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                instPC+=4;
-                break;
-
-            case 2:
-                cout << "\tSLT\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                instPC+=4;
-                break;
-
-            case 3:
-                cout << "\tSLTU\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                instPC+=4;
-                break;
-
-            case 4:
-                cout << "\tXOR\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                instPC+=4;
-                break;
-
-            case 5:
-                if(funct7 == 0x20) {
-                    cout << "\tSRA\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                    instPC+=4;
-                } else if (funct7 == 0x00) { // Check for ADD
-                    cout << "\tSRL\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                    instPC+=4;
-                } else {
-                    cout << "\tUnknown R Instruction \n";
-                }
-                break;
-            case 6:
-                cout << "\tOR\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                instPC+=4;
-                break;
-            case 7:
-                cout << "\tAND\tx" << rd << ", x" << rs1 << ", x" << rs2 << "\n";
-                instPC+=4;
-                break;
-            default:
-                cout << "\tUnknown R Instruction \n";
-        }
-    } else if(opcode == 0x13) { // I instructions
+    } else if(opcode == 0x13) { // I instruction
         switch(funct3) {
             case 0:
                 cout << "\tADDI\tx" << rd << ", x" << rs1 << ", " << hex << "0x" << (int)I_imm << "\n";
@@ -119,37 +179,21 @@ void instDecExec(unsigned int instWord) {
             default:
                 cout << "\tUnknown I Instruction \n";
         }
-    } else if(opcode == 0x63) { //B type
-        switch(funct3) {
-            case 0:
-                cout << "\tBEQ\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
-                instPC+=4;
-                break;
-            case 1:
-                cout << "\tBNE\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
-                instPC+=4;
-                break;
-            case 2:
-                cout << "\tBLT\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
-                instPC+=4;
-                break;
-            case 3:
-                cout << "\tBGE\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
-                instPC+=4;
-                break;
-            case 4:
-                cout << "\tBLTU\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
-                instPC+=4;
-                break;
-            case 5:
-                cout << "\tBGEU\tx" << rs1 << ", x" << rs2 << ", " << instPC+(int)B_imm << "\n";
-                instPC+=4;
-                break;
-    }}
-    else {
+    } else if(opcode == 0x63) { // B instruction
+        B_instructions(funct3, rs1, rs2, B_imm, instPC, regArray);
+
+    } else if(opcode == 0x23){ // S instruction
+        S_Instructions(funct3, rs1, rs2, S_imm, instPC, regArray);
+
+    } else if(opcode == 0x6F){	// J instruction
+        J_instructions(rd, J_imm, instPC);
+
+    } else {
         cout << "\tUnknown Instruction \n";
     }
+
 }
+
 
 
 int main(int argc, char *argv[]){
@@ -157,6 +201,7 @@ int main(int argc, char *argv[]){
 	unsigned int instWord=0;
 	ifstream inFile;
 	ofstream outFile;
+    unsigned int regArray[32] = {0}; // array storing values of registers x0-x31 initialized with 0s
 
 	if(argc<1) emitError("use: rvcdiss <machine_code_file_name>\n");
 
@@ -177,7 +222,7 @@ int main(int argc, char *argv[]){
 				pc += 4;
 				// remove the following line once you have a complete simulator
 			if(pc==256) break;			// stop when PC reached address 32
-				instDecExec(instWord);
+				instDecExec(instWord, regArray);
 		}
 	} else emitError("Cannot access input file\n");
 }
