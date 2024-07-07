@@ -58,23 +58,22 @@ void handleEcall(unsigned int &instPC) {
 
 void S_Instructions(unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int S_imm, unsigned int &instPC) {
     unsigned int address;
+    address = regArray[rs1] + (int)S_imm;
+
     switch(funct3) {
         case 0:
             cout << "\tSB\tx" <<dec<<rs2 << ", " << (int)S_imm << "(x" <<dec<< rs1 << ")" << "\n";
-            address = regArray[rs1] + (int)S_imm;
             memory[address] = (unsigned char)(regArray[rs2] & 0xFF); // Store byte
             instPC += 4;
             break;
         case 1:
             cout << "\tSH\tx" <<dec<< rs2 << ", " << (int)S_imm << "(x" <<dec<< rs1 << ")" << "\n";
-            address = regArray[rs1] + (int)S_imm;
             memory[address] = (unsigned char)(regArray[rs2] & 0xFF); // Store halfword (2 bytes)
             memory[address+1] = (unsigned char)((regArray[rs2] >> 8) & 0xFF);
             instPC += 4;
             break;
         case 2:
             cout << "\tSW\tx" <<dec<< rs2 << ", " << (int)S_imm << "(x" <<dec<< rs1 << ")" << "\n";
-            address = regArray[rs1] + (int)S_imm;
             memory[address] = (unsigned char)(regArray[rs2] & 0xFF); // Store word (4 bytes)
             memory[address+1] = (unsigned char)((regArray[rs2] >> 8) & 0xFF);
             memory[address+2] = (unsigned char)((regArray[rs2] >> 16) & 0xFF);
@@ -191,7 +190,7 @@ void I_instructions(unsigned int rd, unsigned int funct3, unsigned int rs1, unsi
     }
     switch(funct3) {
         case 0:
-            cout << "\tADDI\tx" <<dec<< rd << ", x" <<dec<< rs1 << ", " << (int)I_imm << "\n";
+            cout << "\tADDI\tx" << dec << rd << ", x" << dec << rs1 << ", " << (int)I_imm << "\n";
             regArray[rd] = regArray[rs1] + (int)I_imm;
             break;
         case 2:
@@ -234,34 +233,32 @@ void I_instructions(unsigned int rd, unsigned int funct3, unsigned int rs1, unsi
 }
 void IL_instructions(unsigned int rd,unsigned int funct3, unsigned int rs1, unsigned int I_imm, unsigned int &instPC) {
     unsigned int address;
+    address = regArray[rs1] + (int)I_imm;
+
     switch(funct3) {
         case 0:
             cout << "\tLB\tx" <<dec<< rd << ", " << (int)I_imm << "(x" <<dec<< rs1 << ")" << "\n";
-            address = regArray[rs1] + (int)I_imm;
             regArray[rd] = (int8_t)memory[address]; // Load byte
             instPC += 4;
             break;
         case 1:
             cout << "\tLH\tx" <<dec<< rd << ", " << (int)I_imm << "(x" <<dec<< rs1 << ")" << "\n";
-            address = regArray[rs1] + (int)I_imm;
+
             regArray[rd] = (int16_t)(memory[address] | (memory[address+1] << 8)); // Load halfword
             instPC += 4;
             break;
         case 2:
             cout << "\tLW\tx" <<dec<< rd << ", " << (int)I_imm << "(x"<<dec << rs1 << ")" << "\n";
-            address = regArray[rs1] + (int)I_imm;
             regArray[rd] = memory[address] | (memory[address+1] << 8) | (memory[address+2] << 16) | (memory[address+3] << 24); // Load word
             instPC += 4;
             break;
         case 4:
             cout << "\tLBU\tx" <<dec<< rd << ", " << (int)I_imm << "(x" <<dec<< rs1 << ")" << "\n";
-            address = regArray[rs1] + (int)I_imm;
             regArray[rd] = memory[address]; // Load unsigned byte
             instPC += 4;
             break;
         case 5:
             cout << "\tLHU\tx" <<dec<< rd << ", " << (int)I_imm << "(x" <<dec<< rs1 << ")" << "\n";
-            address = regArray[rs1] + (int)I_imm;
             regArray[rd] = memory[address] | (memory[address+1] << 8); // Load unsigned halfword
             instPC += 4;
             break;
@@ -365,6 +362,7 @@ int main(int argc, char *argv[]) {
                        (((unsigned char) memory[instPC + 3]) << 24);
 
             pc = instPC;
+            regArray[0]=0;
             instDecExec(instWord);
             instPC += 4;
         }
