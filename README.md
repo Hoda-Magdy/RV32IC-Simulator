@@ -26,6 +26,8 @@ A function is used to handle the decoding, identification and execution of an in
 
 A switch case is used to check the type of instruction depending on the opcode, and based on the opcode it calls the instruction that handles this type of instruction, if it has more than one instruction with the same opcode (e.g.: R instructions)., or directly executes the instruction (e.g.: lui instruction). In the functions that are specified for each function type, switch cases are used again to identify the instruction based on funct3, which was previously extracted from the function word. If funct3 is not enough to identify the given function, an if statement is used to check funct7 (this can be seen in R instructions). When the instruction is identified, it is firstly printed to the screen using the correct instruction syntax. Then the execution occurs by updating the regArray and/or the memory. The program counter is also updated based on the instruction. 
 
+The ecall instruction was handled in a seperate function where it reads the system call number from register a7. A switch case is done on regArray[17] to determine what is performed: print integer, print string, read integer or exit.
+
 **Error Handling**
 
 The function ‘emitError’ is used to print error messages and exit the simulation in case of any issues. “Unknown instruction is also printed to the screen if it does not match any of the cases given.
@@ -35,6 +37,7 @@ The function ‘emitError’ is used to print error messages and exit the simula
 **Challenges** 
 
 Handling the different types of immediates was a bit challenging. Each instruction format has its unique way of extracting immediate values and registers. Ensuring that these values were correctly sign-extended or zero-extended as per the specification required careful bit manipulation, which was error-prone initially. Also handling the execution of the store and load function was challenging as it included accessing the memory and addresses and updating it. They were also challenging due to handling not only words, but also half words and a byte (e.g. sh/sb). The ecall implementation was also challenging overall. Implementing system calls to handle standard I/O operations required careful handling of registers and memory. Maintaining the correct program counter and ensuring that instructions executed in the correct order while handling jump and branch instructions was bit challenging and had to be handled accurately as mismanagement of the PC would ruin the flow of the execution of the rest of the program.
+We also attempted to make the program deal with compressed instructions, but failures have occured.
 
 **Limitations**
 
