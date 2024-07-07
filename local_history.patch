@@ -1,0 +1,298 @@
+Index: main.cpp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.cpp b/main.cpp
+--- a/main.cpp	
++++ b/main.cpp	(date 1720268114262)
+@@ -56,7 +56,7 @@
+     }
+ }
+ 
+-void S_Instructions(unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int S_imm, unsigned int &instPC, unsigned int regArray[]) {
++void S_Instructions(unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int S_imm, unsigned int &instPC) {
+     unsigned int address;
+     switch(funct3) {
+         case 0:
+@@ -86,13 +86,13 @@
+     }
+ }
+ 
+-void J_instructions(unsigned int rd, unsigned int J_imm, unsigned int &instPC, unsigned int regArray[]){
++void J_instructions(unsigned int rd, unsigned int J_imm, unsigned int &instPC){
+     cout << "\tJAL\tx" << rd << ", " << 2*(int)J_imm << "\n";
+     regArray[rd] = instPC + 4; // Store return address
+     instPC += 2 * (int)J_imm;
+ }
+ 
+-void B_instructions(unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int B_imm, unsigned int &instPC, unsigned int regArray[]){
++void B_instructions(unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int B_imm, unsigned int &instPC){
+     bool takeBranch = false;
+     switch(funct3) {
+         case 0:
+@@ -128,7 +128,7 @@
+         instPC += 4;
+ }
+ 
+-void R_instructions(unsigned int rd, unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int funct7, unsigned int &instPC, unsigned int regArray[]){
++void R_instructions(unsigned int rd, unsigned int funct3, unsigned int rs1, unsigned int rs2, unsigned int funct7, unsigned int &instPC){
+     switch(funct3) {
+         case 0:
+             if(funct7 == 0x20) {
+@@ -182,7 +182,7 @@
+     instPC += 4;
+ }
+ 
+-void I_instructions(unsigned int rd, unsigned int funct3, unsigned int rs1, unsigned int I_imm, unsigned int &instPC, unsigned int regArray[]){
++void I_instructions(unsigned int rd, unsigned int funct3, unsigned int rs1, unsigned int I_imm, unsigned int &instPC){
+     unsigned int address;
+     switch(funct3) {
+         case 0:
+@@ -227,36 +227,45 @@
+     }
+     instPC += 4;
+ }
+-void IL_instructions(unsigned int rd, unsigned int funct3, unsigned int rs1, unsigned int I_imm, unsigned int &instPC, unsigned int regArray[]) {
+-    int address = regArray[rs1] + I_imm;
+-    switch (funct3) {
+-        case 0x0:  // LB
+-            regArray[rd] = (int8_t)memory[address];
+-            cout << "LB: Loaded " << (int)regArray[rd] << " from address " << address << endl;
++void IL_instructions(unsigned int rd,unsigned int funct3, unsigned int rs1, unsigned int I_imm, unsigned int &instPC) {
++    unsigned int address;
++    switch(funct3) {
++        case 0:
++            cout << "\tLB\tx" << rd << ", " << (int)I_imm << "(x" << rs1 << ")" << "\n";
++            address = regArray[rs1] + (int)I_imm;
++            regArray[rd] = (int8_t)memory[address]; // Load byte
++            instPC += 4;
+             break;
+-        case 0x1:  // LH
+-            regArray[rd] = (int16_t)*(uint16_t*)(&memory[address]);
+-            cout << "LH: Loaded " << (int)regArray[rd] << " from address " << address << endl;
++        case 1:
++            cout << "\tLH\tx" << rd << ", " << (int)I_imm << "(x" << rs1 << ")" << "\n";
++            address = regArray[rs1] + (int)I_imm;
++            regArray[rd] = (int16_t)(memory[address] | (memory[address+1] << 8)); // Load halfword
++            instPC += 4;
+             break;
+-        case 0x2:  // LW
+-            regArray[rd] = *(int32_t*)(&memory[address]);
+-            cout << "LW: Loaded " << (int)regArray[rd] << " from address " << address << endl;
++        case 2:
++            cout << "\tLW\tx" << rd << ", " << (int)I_imm << "(x" << rs1 << ")" << "\n";
++            address = regArray[rs1] + (int)I_imm;
++            regArray[rd] = memory[address] | (memory[address+1] << 8) | (memory[address+2] << 16) | (memory[address+3] << 24); // Load word
++            instPC += 4;
+             break;
+-        case 0x4:  // LBU
+-            regArray[rd] = memory[address];
+-            cout << "LBU: Loaded " << (int)regArray[rd] << " from address " << address << endl;
++        case 4:
++            cout << "\tLBU\tx" << rd << ", " << (int)I_imm << "(x" << rs1 << ")" << "\n";
++            address = regArray[rs1] + (int)I_imm;
++            regArray[rd] = memory[address]; // Load unsigned byte
++            instPC += 4;
+             break;
+-        case 0x5:  // LHU
+-            regArray[rd] = *(uint16_t*)(&memory[address]);
+-            cout << "LHU: Loaded " << (int)regArray[rd] << " from address " << address << endl;
++        case 5:
++            cout << "\tLHU\tx" << rd << ", " << (int)I_imm << "(x" << rs1 << ")" << "\n";
++            address = regArray[rs1] + (int)I_imm;
++            regArray[rd] = memory[address] | (memory[address+1] << 8); // Load unsigned halfword
++            instPC += 4;
+             break;
+         default:
+-            cout << "Unknown load funct3: " << funct3 << endl;
++            cout << "\tUnknown Load Instruction \n";
+     }
+ }
+ 
+-void instDecExec(unsigned int instWord)
+-{
++void instDecExec(unsigned int instWord) {
+     unsigned int rd, rs1, rs2, funct3, funct7, opcode, I_imm, S_imm, B_imm, U_imm, J_imm;
+ 
+     unsigned int instPC = pc;
+@@ -268,102 +277,91 @@
+     rs2 = (instWord >> 20) & 0x1F;
+     funct7 = (instWord >> 25) & 0x7F;
+ 
+-    I_imm = (instWord >> 20) & 0xFFF;
+-    S_imm = ((instWord >> 7) & 0x1F) | (((instWord >> 25) & 0x7F) << 5);
+-    B_imm = ((instWord >> 8) & 0xF) | (((instWord >> 25) & 0x3F) << 4) | (((instWord >> 7) & 0x1) << 10) | (((instWord >> 31) & 0x1) << 11);
+-    U_imm = instWord & 0xFFFFF000;
+-    J_imm = ((instWord >> 21) & 0x3FF) | (((instWord >> 20) & 0x1) << 10) | (((instWord >> 12) & 0xFF) << 11) | (((instWord >> 31) & 0x1) << 19);
+-    unsigned int imm;
+-    cout << "0x" << hex << instPC << "\t0x" << instWord;
++    I_imm = (instWord >> 20);  // Extract imm[11:0]
++
++    // Sign extend the immediate value
++    if (I_imm & 0x800) {
++        I_imm |= 0xFFFFF000;}
++        S_imm = ((instWord >> 7) & 0x1F) | ((instWord >> 20) & 0xFE0);  // Combine imm parts
++        if (S_imm & 0x800)  // Check if the immediate value is negative
++            S_imm |= 0xFFFFF000;  // Sign extend
++        B_imm = ((instWord >> 8) & 0xF) | (((instWord >> 25) & 0x3F) << 4) | (((instWord >> 7) & 0x1) << 10) |
++                (((instWord >> 31) & 0x1) << 11);
++        U_imm = instWord & 0xFFFFF000;
++        J_imm = ((instWord >> 21) & 0x3FF) | (((instWord >> 20) & 0x1) << 10) | (((instWord >> 12) & 0xFF) << 11) |
++                (((instWord >> 31) & 0x1) << 19);
++        unsigned int imm;
++        cout << "0x" << hex << instPC << "\t0x" << instWord;
+ 
+-    switch (opcode) {
+-        case 0x33: // R Instructions
+-            R_instructions(rd, funct3, rs1, rs2, funct7, instPC, regArray);
+-            break;
+-        case 0x03: // I Instructions (Loads)
+-            IL_instructions(rd, funct3, rs1, I_imm, instPC, regArray);
+-            break;
+-        case 0x13: // I Instructions
+-            I_instructions(rd, funct3, rs1, I_imm, instPC, regArray);
+-            break;
+-        case 0x23:  // Store
+-           imm = ((instWord >> 7) & 0x1F) | ((instWord >> 20) & 0xFE0);  // Combine imm parts
+-            if (imm & 0x800)  // Check if the immediate value is negative
+-                imm |= 0xFFFFF000;  // Sign extend
+-            switch (funct3) {
+-                case 0x0:  // sb
+-                    cout << "sb: Storing " << hex << (regArray[rs2] & 0xFF) << " to address " << hex << (regArray[rs1] + imm) << "\n";
+-                    memory[regArray[rs1] + imm] = regArray[rs2] & 0xFF;
+-                    break;
+-                case 0x1:  // sh
+-                    cout << "sh: Storing " << hex << (regArray[rs2] & 0xFFFF) << " to address " << hex << (regArray[rs1] + imm) << "\n";
+-                    *(unsigned short *)(&memory[regArray[rs1] + imm]) = regArray[rs2] & 0xFFFF;
+-                    break;
+-                case 0x2:  // sw
+-                    cout << "sw: Storing " << hex << regArray[rs2] << " to address " << hex << (regArray[rs1] + imm) << "\n";
+-                    *(unsigned int *)(&memory[regArray[rs1] + imm]) = regArray[rs2];
+-                    break;
+-                default:
+-                    cout << "Unknown store funct3\n";
+-            }
+-            break;
+-        case 0x63: // B Instructions
+-            B_instructions(funct3, rs1, rs2, B_imm, instPC, regArray);
+-            break;
+-        case 0x37: // U Instructions (LUI)
+-            cout << "\tLUI\tx" << rd << ", 0x" << (U_imm >> 12) << "\n";
+-            regArray[rd] = U_imm;
+-            instPC += 4;
+-            break;
+-        case 0x17: // U Instructions (AUIPC)
+-            cout << "\tAUIPC\tx" << rd << ", 0x" << (U_imm >> 12) << "\n";
+-            regArray[rd] = instPC + U_imm;
+-            instPC += 4;
+-            break;
+-        case 0x6F: // J Instructions
+-            J_instructions(rd, J_imm, instPC, regArray);
+-            break;
+-        case 0x73: // I Instructions (ECALL/EBREAK)
+-            handleEcall(instPC, regArray, memory);
+-            break;
+-        default:
+-            cout << "\tUnknown Instruction \n";
+-    }
++        switch (opcode) {
++            case 0x33: // R Instructions
++                R_instructions(rd, funct3, rs1, rs2, funct7, instPC);
++                break;
++            case 0x03: // I Instructions (Loads)
++                IL_instructions(rd, funct3, rs1, I_imm, instPC);
++                break;
++            case 0x13: // I Instructions
++                I_instructions(rd, funct3, rs1, I_imm, instPC);
++                break;
++            case 0x23:  // Store
++                S_Instructions(funct3, rs1, rs2, S_imm, instPC);
++                break;
++            case 0x63: // B Instructions
++                B_instructions(funct3, rs1, rs2, B_imm, instPC);
++                break;
++            case 0x37: // U Instructions (LUI)
++                cout << "\tLUI\tx" << rd << ", 0x" << (U_imm >> 12) << "\n";
++                regArray[rd] = U_imm;
++                instPC += 4;
++                break;
++            case 0x17: // U Instructions (AUIPC)
++                cout << "\tAUIPC\tx" << rd << ", 0x" << (U_imm >> 12) << "\n";
++                regArray[rd] = instPC + U_imm;
++                instPC += 4;
++                break;
++            case 0x6F: // J Instructions
++                J_instructions(rd, J_imm, instPC);
++                break;
++            case 0x73: // I Instructions (ECALL/EBREAK)
++                handleEcall(instPC, regArray, memory);
++                break;
++            default:
++                cout << "\tUnknown Instruction \n";
++        }
+ 
+-    pc = instPC;
+-}
++        pc = instPC;
++    }
+ 
+-int main(int argc, char *argv[])
+-{
+-    unsigned int instWord = 0;
+-    unsigned int instPC = 0;
+-    ifstream inFile;
+-    ofstream outFile;
++    int main(int argc, char *argv[]) {
++        unsigned int instWord = 0;
++        unsigned int instPC = 0;
++        ifstream inFile;
++        ofstream outFile;
+ 
+-    if (argc < 2) emitError((char *)"use: rv32i_sim <machine_code_file_name>\n");
++        if (argc < 2) emitError((char *) "use: rv32i_sim <machine_code_file_name>\n");
+ 
+-    inFile.open(argv[1], ios::in | ios::binary | ios::ate);
+-    if (inFile.is_open()) {
+-        int fsize = inFile.tellg();  // Get the file size
+-        inFile.seekg(0, inFile.beg);
++        inFile.open(argv[1], ios::in | ios::binary | ios::ate);
++        if (inFile.is_open()) {
++            int fsize = inFile.tellg();  // Get the file size
++            inFile.seekg(0, inFile.beg);
+ 
+-        if (!inFile.read((char *)memory, fsize)) emitError((char *)"Cannot read from input file\n");
++            if (!inFile.read((char *) memory, fsize)) emitError((char *) "Cannot read from input file\n");
+ 
+-        while (instPC < fsize) {  // Loop until instPC exceeds file size
+-            instWord = (unsigned char)memory[instPC] |
+-                       (((unsigned char)memory[instPC + 1]) << 8) |
+-                       (((unsigned char)memory[instPC + 2]) << 16) |
+-                       (((unsigned char)memory[instPC + 3]) << 24);
++            while (instPC < fsize) {  // Loop until instPC exceeds file size
++                instWord = (unsigned char) memory[instPC] |
++                           (((unsigned char) memory[instPC + 1]) << 8) |
++                           (((unsigned char) memory[instPC + 2]) << 16) |
++                           (((unsigned char) memory[instPC + 3]) << 24);
+ 
+-            pc = instPC;
+-            instDecExec(instWord);
+-            instPC += 4;
+-        }
+-    } else emitError((char *)"Cannot access input file\n");
++                pc = instPC;
++                instDecExec(instWord);
++                instPC += 4;
++            }
++        } else emitError((char *) "Cannot access input file\n");
+ 
+-    for (int i = 0; i < 32; i++)
+-        cout << "x" << dec << i << "\t" << "0x" << hex << regArray[i] << "\n";
++        for (int i = 0; i < 32; i++)
++            cout << "x" << dec << i << "\t" << "0x" << hex << regArray[i] << "\n";
+ 
+-    return 0;
+-}
++        return 0;
++    }
+ 
